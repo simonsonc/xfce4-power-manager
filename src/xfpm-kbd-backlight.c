@@ -23,6 +23,7 @@
 #endif
 
 #include "xfpm-kbd-backlight.h"
+#include "xfpm-button.h"
 
 static void xfpm_kbd_backlight_finalize (GObject *object);
 
@@ -31,6 +32,7 @@ static void xfpm_kbd_backlight_finalize (GObject *object);
 
 struct XfpmKbdBacklightPrivate
 {
+    XfpmButton      *button;
 };
 
 G_DEFINE_TYPE (XfpmKbdBacklight, xfpm_kbd_backlight, G_TYPE_OBJECT)
@@ -46,13 +48,21 @@ xfpm_kbd_backlight_class_init (XfpmKbdBacklightClass *klass)
 }
 
 static void
-xfpm_kbd_backlight_init (XfpmKbdBacklight *backlight)
+xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
 {
+    self->priv = XFPM_KBD_BACKLIGHT_GET_PRIVATE (self);
+
+    self->priv->button = xfpm_button_new ();
 }
 
 static void
 xfpm_kbd_backlight_finalize (GObject *object)
 {
+    XfpmKbdBacklight *self = XFPM_KBD_BACKLIGHT (object);
+
+    if ( self->priv->button )
+        g_object_unref (self->priv->button);
+
     G_OBJECT_CLASS (xfpm_kbd_backlight_parent_class)->finalize (object);
 }
 

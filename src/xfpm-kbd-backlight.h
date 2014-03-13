@@ -26,7 +26,7 @@
 G_BEGIN_DECLS
 
 #define XFPM_TYPE_KBD_BACKLIGHT     (xfpm_kbd_backlight_get_type () )
-#define XFPM_KBD_BACKLIGHT          (G_TYPE_CHECK_INSTANCE_CAST ((o), XFPM_TYPE_KBD_BACKLIGHT, XfpmKbdBacklight))
+#define XFPM_KBD_BACKLIGHT(o)       (G_TYPE_CHECK_INSTANCE_CAST ((o), XFPM_TYPE_KBD_BACKLIGHT, XfpmKbdBacklight))
 #define XFPM_IS_KBD_BACKLIGHT(o)    (G_TYPE_CHECK_INSTANCE_TYPE ((o), XFPM_TYPE_KBD_BACKLIGHT))
 
 typedef struct XfpmKbdBacklightPrivate XfpmKbdBacklightPrivate;
