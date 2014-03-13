@@ -64,6 +64,9 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
     self->priv = XFPM_KBD_BACKLIGHT_GET_PRIVATE (self);
 
     self->priv->button = xfpm_button_new ();
+
+    g_signal_connect (self->priv->button, "button-pressed",
+            G_CALLBACK (button_pressed_cb), self);
 }
 
 static void
@@ -73,9 +76,6 @@ xfpm_kbd_backlight_finalize (GObject *object)
 
     if ( self->priv->button )
         g_object_unref (self->priv->button);
-
-    g_signal_connect (self->priv->button, "button-pressed",
-            G_CALLBACK (button_pressed_cb), self);
 
     G_OBJECT_CLASS (xfpm_kbd_backlight_parent_class)->finalize (object);
 }
