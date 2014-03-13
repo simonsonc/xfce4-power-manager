@@ -38,6 +38,17 @@ struct XfpmKbdBacklightPrivate
 G_DEFINE_TYPE (XfpmKbdBacklight, xfpm_kbd_backlight, G_TYPE_OBJECT)
 
 static void
+button_pressed_cb (XfpmButton *button, XfpmButtonKey type, XfpmKbdBacklight *self)
+{
+    if ( type == BUTTON_KBD_BRIGHTNESS_UP )
+    {
+    }
+    else if ( type == BUTTON_KBD_BRIGHTNESS_DOWN )
+    {
+    }
+}
+
+static void
 xfpm_kbd_backlight_class_init (XfpmKbdBacklightClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -62,6 +73,9 @@ xfpm_kbd_backlight_finalize (GObject *object)
 
     if ( self->priv->button )
         g_object_unref (self->priv->button);
+
+    g_signal_connect (self->priv->button, "button-pressed",
+            G_CALLBACK (button_pressed_cb), self);
 
     G_OBJECT_CLASS (xfpm_kbd_backlight_parent_class)->finalize (object);
 }
