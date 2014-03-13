@@ -97,7 +97,14 @@ change_brightness (XfpmKbdBacklight *self, gint amount, gint* new_amount)
     }
 
     org_freedesktop_UPower_KbdBacklight_set_brightness (self->priv->proxy,
-            brightness, NULL);
+            brightness, &error);
+    if ( error )
+    {
+        g_warning ("Unable to set keyboard brightness value: %s", error->message);
+        g_error_free (error);
+        return TRUE;
+    }
+
     *new_amount = brightness;
     return TRUE;
 }
