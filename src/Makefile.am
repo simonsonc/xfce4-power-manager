@@ -146,7 +146,8 @@ BUILT_SOURCES =					\
 	xfpm-marshal.c                          \
         xfpm-marshal.h				\
 	org.freedesktop.PowerManagement.h       \
-	org.freedesktop.PowerManagement.Inhibit.h
+	org.freedesktop.PowerManagement.Inhibit.h \
+	org.freedesktop.UPower.KbdBacklight.h
 
 if MAINTAINER_MODE
 
@@ -190,6 +191,9 @@ org.freedesktop.PowerManagement.h: $(srcdir)/org.freedesktop.PowerManagement.xml
 
 org.freedesktop.PowerManagement.Inhibit.h: $(srcdir)/org.freedesktop.PowerManagement.Inhibit.xml
 	dbus-binding-tool --mode=glib-server --prefix=xfpm_inhibit $< >$@
+
+org.freedesktop.UPower.KbdBacklight.h: $(srcdir)/org.freedesktop.UPower.KbdBacklight.xml
+	dbus-binding-tool --mode=glib-client --prefix=xfpm_kbd_backlight $< >$@
 
 endif
 

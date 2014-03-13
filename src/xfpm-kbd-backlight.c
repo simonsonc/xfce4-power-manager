@@ -22,8 +22,12 @@
 #include <config.h>
 #endif
 
+#include <dbus/dbus-glib.h>
+
 #include "xfpm-kbd-backlight.h"
 #include "xfpm-button.h"
+
+#include "org.freedesktop.UPower.KbdBacklight.h"
 
 static void xfpm_kbd_backlight_finalize (GObject *object);
 
@@ -32,6 +36,9 @@ static void xfpm_kbd_backlight_finalize (GObject *object);
 
 struct XfpmKbdBacklightPrivate
 {
+    DBusGConnection *bus;
+    DBusGProxy      *proxy;
+
     XfpmButton      *button;
 };
 
@@ -63,6 +70,21 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
 {
     self->priv = XFPM_KBD_BACKLIGHT_GET_PRIVATE (self);
 
+    GError *error = NULL;
+    self->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+
+    if ( error )
+    {
+        g_critical ("Unable to get system bus connection : %s", error->message);
+        g_error_free (error);
+        return;
+    }
+
+    self->priv->proxy = dbus_g_proxy_new_for_name (self->priv->bus,
+            "org.freedesktop.UPower",
+            "/org/freedesktop/UPower/KbdBacklight",
+            "org.freedesktop.UPower");
+
     self->priv->button = xfpm_button_new ();
 
     g_signal_connect (self->priv->button, "button-pressed",
@@ -76,6 +98,12 @@ xfpm_kbd_backlight_finalize (GObject *object)
 
     if ( self->priv->button )
         g_object_unref (self->priv->button);
+
+    if ( self->priv->proxy )
+        g_object_unref (self->priv->proxy);
+
+    if ( self->priv->bus )
+        dbus_g_connection_unref (self->priv->bus);
 
     G_OBJECT_CLASS (xfpm_kbd_backlight_parent_class)->finalize (object);
 }
