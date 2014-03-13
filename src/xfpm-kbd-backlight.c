@@ -23,13 +23,16 @@
 #endif
 
 #include <dbus/dbus-glib.h>
+#include <libxfce4util/libxfce4util.h>
 
 #include "xfpm-kbd-backlight.h"
 #include "xfpm-button.h"
+#include "xfpm-notify.h"
 
 #include "org.freedesktop.UPower.KbdBacklight.h"
 
 static void xfpm_kbd_backlight_finalize (GObject *object);
+static void show_notification (XfpmKbdBacklight *self, gfloat value);
 
 #define XFPM_KBD_BACKLIGHT_GET_PRIVATE(o) \
 (G_TYPE_INSTANCE_GET_PRIVATE ((o), XFPM_TYPE_KBD_BACKLIGHT, XfpmKbdBacklightPrivate))
@@ -40,6 +43,9 @@ struct XfpmKbdBacklightPrivate
     DBusGProxy      *proxy;
 
     XfpmButton      *button;
+    XfpmNotify      *notify;
+
+    NotifyNotification *n;
 
     gint             max_level;
 };
@@ -64,13 +70,14 @@ get_max_brightness (XfpmKbdBacklight *self)
     return max_brightness;
 }
 
-static void change_brightness (XfpmKbdBacklight *self, gint amount)
+static gboolean
+change_brightness (XfpmKbdBacklight *self, gint amount, gint* new_amount)
 {
     GError *error = NULL;
     gint brightness;
 
     if (self->priv->max_level == -1)
-        return;
+        return FALSE;
 
     org_freedesktop_UPower_KbdBacklight_get_brightness (self->priv->proxy,
             &brightness, &error);
@@ -79,28 +86,74 @@ static void change_brightness (XfpmKbdBacklight *self, gint amount)
     {
         g_warning ("Unable to get keyboard brightness value: %s", error->message);
         g_error_free (error);
-        return;
+        return FALSE;
     }
 
+    *new_amount = brightness;
     brightness += amount;
     if ( (brightness > self->priv->max_level) || (brightness < 0) )
-        return;
+    {
+        return TRUE;
+    }
 
     org_freedesktop_UPower_KbdBacklight_set_brightness (self->priv->proxy,
             brightness, NULL);
+    *new_amount = brightness;
+    return TRUE;
 }
 
 static void
 button_pressed_cb (XfpmButton *button, XfpmButtonKey type, XfpmKbdBacklight *self)
 {
+    gint new_value;
+    gboolean ret;
+
     if ( type == BUTTON_KBD_BRIGHTNESS_UP )
     {
-        change_brightness (self, 1);
+        ret = change_brightness (self, 1, &new_value);
     }
     else if ( type == BUTTON_KBD_BRIGHTNESS_DOWN )
     {
-        change_brightness (self, -1);
+        ret = change_brightness (self, -1, &new_value);
     }
+    else
+    {
+        return;
+    }
+
+    if ( ret )
+    {
+        gfloat percent = ( (gfloat)new_value / (gfloat)self->priv->max_level ) * 100.0;
+        show_notification (self, percent);
+    }
+}
+
+static void
+show_notification (XfpmKbdBacklight *self, gfloat value)
+{
+    gchar *summary;
+
+    if ( self->priv->n == NULL )
+    {
+        self->priv->n = xfpm_notify_new_notification (self->priv->notify,
+                "",
+                "",
+                "xfpm-brightness-lcd",
+                0,
+                XFPM_NOTIFY_NORMAL,
+                NULL);
+    }
+
+    /* generate a human-readable summary for the notification */
+    summary = g_strdup_printf (_("Keyboard Brightness: %.0f percent"), value);
+    notify_notification_update (self->priv->n, summary, NULL, NULL);
+    g_free (summary);
+
+    /* add the brightness value to the notification */
+    notify_notification_set_hint_int32 (self->priv->n, "value", value);
+
+    /* show the notification */
+    notify_notification_show (self->priv->n, NULL);
 }
 
 static void
@@ -123,7 +176,9 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
     self->priv->bus = NULL;
     self->priv->proxy = NULL;
     self->priv->button = NULL;
+    self->priv->notify = NULL;
     self->priv->max_level = -1;
+    self->priv->n = NULL;
 
     self->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
 
@@ -140,6 +195,7 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
             "org.freedesktop.UPower.KbdBacklight");
 
     self->priv->button = xfpm_button_new ();
+    self->priv->notify = xfpm_notify_new ();
 
     self->priv->max_level = get_max_brightness (self);
 
@@ -154,6 +210,12 @@ xfpm_kbd_backlight_finalize (GObject *object)
 
     if ( self->priv->button )
         g_object_unref (self->priv->button);
+
+    if ( self->priv->n )
+        g_object_unref (self->priv->n);
+
+    if ( self->priv->notify)
+        g_object_unref (self->priv->notify);
 
     if ( self->priv->proxy )
         g_object_unref (self->priv->proxy);
