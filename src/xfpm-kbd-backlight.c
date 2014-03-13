@@ -40,15 +40,37 @@ struct XfpmKbdBacklightPrivate
     DBusGProxy      *proxy;
 
     XfpmButton      *button;
+
+    gint             max_level;
 };
 
 G_DEFINE_TYPE (XfpmKbdBacklight, xfpm_kbd_backlight, G_TYPE_OBJECT)
+
+static gint
+get_max_brightness (XfpmKbdBacklight *self)
+{
+    GError *error = NULL;
+    gint max_brightness;
+
+    org_freedesktop_UPower_KbdBacklight_get_max_brightness (self->priv->proxy,
+            &max_brightness, &error);
+    if ( error )
+    {
+        g_warning ("Unable to get keyboard max brightness value: %s", error->message);
+        g_error_free (error);
+        return -1;
+    }
+
+    return max_brightness;
+}
 
 static void change_brightness (XfpmKbdBacklight *self, gint amount)
 {
     GError *error = NULL;
     gint brightness;
-    gint max_brightness;
+
+    if (self->priv->max_level == -1)
+        return;
 
     org_freedesktop_UPower_KbdBacklight_get_brightness (self->priv->proxy,
             &brightness, &error);
@@ -60,17 +82,8 @@ static void change_brightness (XfpmKbdBacklight *self, gint amount)
         return;
     }
 
-    org_freedesktop_UPower_KbdBacklight_get_max_brightness (self->priv->proxy,
-            &max_brightness, &error);
-    if ( error )
-    {
-        g_warning ("Unable to get keyboard max brightness value: %s", error->message);
-        g_error_free (error);
-        return;
-    }
-
     brightness += amount;
-    if ( (brightness > max_brightness) || (brightness < 0) )
+    if ( (brightness > self->priv->max_level) || (brightness < 0) )
         return;
 
     org_freedesktop_UPower_KbdBacklight_set_brightness (self->priv->proxy,
@@ -110,6 +123,7 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
     self->priv->bus = NULL;
     self->priv->proxy = NULL;
     self->priv->button = NULL;
+    self->priv->max_level = -1;
 
     self->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
 
@@ -126,6 +140,8 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
             "org.freedesktop.UPower.KbdBacklight");
 
     self->priv->button = xfpm_button_new ();
+
+    self->priv->max_level = get_max_brightness (self);
 
     g_signal_connect (self->priv->button, "button-pressed",
             G_CALLBACK (button_pressed_cb), self);
