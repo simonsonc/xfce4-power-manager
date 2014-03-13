@@ -47,6 +47,7 @@
 #include "xfpm-button.h"
 #include "xfpm-backlight.h"
 #include "xfpm-inhibit.h"
+#include "xfpm-kbd-backlight.h"
 #include "egg-idletime.h"
 #include "xfpm-config.h"
 #include "xfpm-debug.h"
@@ -84,6 +85,7 @@ struct XfpmManagerPrivate
     XfpmDBusMonitor *monitor;
     XfpmDisks       *disks;
     XfpmInhibit     *inhibit;
+    XfpmKbdBacklight *kbd_backlight;
     EggIdletime     *idle;
 #ifdef HAVE_DPMS
     XfpmDpms        *dpms;
@@ -144,6 +146,7 @@ xfpm_manager_finalize (GObject *object)
 #endif
 
     g_object_unref (manager->priv->backlight);
+    g_object_unref (manager->priv->kbd_backlight);
 
     G_OBJECT_CLASS (xfpm_manager_parent_class)->finalize (object);
 }
@@ -548,6 +551,7 @@ void xfpm_manager_start (XfpmManager *manager)
 		      G_CALLBACK (xfpm_manager_system_bus_connection_changed_cb), manager);
 
     manager->priv->backlight = xfpm_backlight_new ();
+    manager->priv->kbd_backlight = xfpm_kbd_backlight_new ();
 
 #ifdef HAVE_DPMS
     manager->priv->dpms = xfpm_dpms_new ();
