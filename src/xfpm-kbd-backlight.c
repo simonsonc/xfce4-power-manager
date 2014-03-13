@@ -44,14 +44,49 @@ struct XfpmKbdBacklightPrivate
 
 G_DEFINE_TYPE (XfpmKbdBacklight, xfpm_kbd_backlight, G_TYPE_OBJECT)
 
+static void change_brightness (XfpmKbdBacklight *self, gint amount)
+{
+    GError *error = NULL;
+    gint brightness;
+    gint max_brightness;
+
+    org_freedesktop_UPower_KbdBacklight_get_brightness (self->priv->proxy,
+            &brightness, &error);
+
+    if ( error )
+    {
+        g_warning ("Unable to get keyboard brightness value: %s", error->message);
+        g_error_free (error);
+        return;
+    }
+
+    org_freedesktop_UPower_KbdBacklight_get_max_brightness (self->priv->proxy,
+            &max_brightness, &error);
+    if ( error )
+    {
+        g_warning ("Unable to get keyboard max brightness value: %s", error->message);
+        g_error_free (error);
+        return;
+    }
+
+    brightness += amount;
+    if ( (brightness > max_brightness) || (brightness < 0) )
+        return;
+
+    org_freedesktop_UPower_KbdBacklight_set_brightness (self->priv->proxy,
+            brightness, NULL);
+}
+
 static void
 button_pressed_cb (XfpmButton *button, XfpmButtonKey type, XfpmKbdBacklight *self)
 {
     if ( type == BUTTON_KBD_BRIGHTNESS_UP )
     {
+        change_brightness (self, 1);
     }
     else if ( type == BUTTON_KBD_BRIGHTNESS_DOWN )
     {
+        change_brightness (self, -1);
     }
 }
 
@@ -68,9 +103,10 @@ xfpm_kbd_backlight_class_init (XfpmKbdBacklightClass *klass)
 static void
 xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
 {
+    GError *error = NULL;
+
     self->priv = XFPM_KBD_BACKLIGHT_GET_PRIVATE (self);
 
-    GError *error = NULL;
     self->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
 
     if ( error )
@@ -83,7 +119,7 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
     self->priv->proxy = dbus_g_proxy_new_for_name (self->priv->bus,
             "org.freedesktop.UPower",
             "/org/freedesktop/UPower/KbdBacklight",
-            "org.freedesktop.UPower");
+            "org.freedesktop.UPower.KbdBacklight");
 
     self->priv->button = xfpm_button_new ();
 
