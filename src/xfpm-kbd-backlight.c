@@ -107,6 +107,10 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
 
     self->priv = XFPM_KBD_BACKLIGHT_GET_PRIVATE (self);
 
+    self->priv->bus = NULL;
+    self->priv->proxy = NULL;
+    self->priv->button = NULL;
+
     self->priv->bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
 
     if ( error )
