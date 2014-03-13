@@ -261,6 +261,9 @@ xfpm_manager_button_pressed_cb (XfpmButton *bt, XfpmButtonKey type, XfpmManager 
     if ( type == BUTTON_MON_BRIGHTNESS_DOWN || type == BUTTON_MON_BRIGHTNESS_UP )
         return;
 
+    if ( type == BUTTON_KBD_BRIGHTNESS_DOWN || type == BUTTON_KBD_BRIGHTNESS_UP )
+        return;
+
     if ( type == BUTTON_POWER_OFF )
     {
         g_object_get (G_OBJECT (manager->priv->conf),
