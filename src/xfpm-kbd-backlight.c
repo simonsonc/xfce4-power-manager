@@ -200,6 +200,11 @@ xfpm_kbd_backlight_init (XfpmKbdBacklight *self)
             "org.freedesktop.UPower",
             "/org/freedesktop/UPower/KbdBacklight",
             "org.freedesktop.UPower.KbdBacklight");
+    if ( !self->priv->proxy )
+    {
+        g_warning ("Unable to create proxy for 'org.freedesktop.UPower'");
+        return;
+    }
 
     self->priv->button = xfpm_button_new ();
     self->priv->notify = xfpm_notify_new ();
